@@ -28,10 +28,12 @@ $index = Get-Content -Raw (Join-Path $Root 'index.html')
 Assert-True ($index -match 'content-security-policy') 'page configures CSP'
 Assert-True ($index -match 'aria-live') 'page includes accessible live regions'
 Assert-True ($index -notmatch '<script[^>]*>\s*[^<]') 'page has no inline script'
+Assert-True ($index -match 'id="rank-type"') 'page includes leaderboard category selector'
 
 $app = Get-Content -Raw (Join-Path $Root 'app.js')
 Assert-True ($app -match 'AbortController') 'poller uses AbortController'
 Assert-True ($app -match 'visibilitychange') 'poller responds to visibility changes'
+Assert-True ($app -match "searchParams\.set\('rank_type'") 'status request includes selected leaderboard category'
 Assert-True ($app -notmatch '/api/settings|switch-rank|method:\s*["'']POST') 'public app contains no mutation endpoint'
 
 $node = Get-Command node -ErrorAction SilentlyContinue

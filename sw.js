@@ -1,4 +1,4 @@
-const CACHE = 'position-radar-shell-v1';
+const CACHE = 'position-radar-shell-v2';
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './config.js', './manifest.webmanifest',
   './offline.html', './favicon.ico', './assets/icons/icon-64.png', './assets/icons/icon-192.png', './assets/icons/icon-512.png'

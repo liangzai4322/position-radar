@@ -92,7 +92,15 @@
     <section class="workspace" aria-labelledby="list-title">
       <div class="workspace-head">
         <div><p class="eyebrow">TRADER SIGNALS</p><h2 id="list-title">交易员信号</h2><p id="result-count" class="result-count">正在载入账户…</p></div>
-        <button class="filter-mobile-button" id="open-filters" type="button" aria-haspopup="dialog">筛选 <span id="active-filter-count">0</span></button>
+        <div class="workspace-actions">
+          <label class="rank-selector" for="rank-type"><span>排行榜分类</span><select id="rank-type">
+            <option value="composite">综合排序</option><option value="yieldRatio">收益率</option>
+            <option value="pnl">收益额</option><option value="winRatio">胜率</option>
+            <option value="aum">带单规模</option><option value="traderFollowerLimit">跟单人数</option>
+            <option value="followTotalPnl">跟单用户收益</option><option value="all">所有交易员</option>
+          </select></label>
+          <button class="filter-mobile-button" id="open-filters" type="button" aria-haspopup="dialog">筛选 <span id="active-filter-count">0</span></button>
+        </div>
       </div>
 
       <div class="workspace-layout">

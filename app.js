@@ -6,7 +6,12 @@
     theme: 'position-radar:theme',
     favorites: 'position-radar:favorites',
     filters: 'position-radar:filters',
+    rank: 'position-radar:rank-type',
     cache: 'position-radar:last-state'
+  };
+  const RANK_LABELS = {
+    composite: '综合排序', yieldRatio: '收益率', pnl: '收益额', winRatio: '胜率',
+    aum: '带单规模', traderFollowerLimit: '跟单人数', followTotalPnl: '跟单用户收益', all: '所有交易员'
   };
   const state = {
     data: null,
@@ -17,6 +22,7 @@
     latency: 0,
     controller: null,
     timer: null,
+    rankType: 'composite',
     filters: { query: '', symbol: 'all', direction: 'all', risk: 'all', position: 'all', sort: 'risk', favoritesOnly: false },
     favorites: new Set(),
     previous: new Map()
@@ -32,6 +38,7 @@
       connection: $('#connection-status'), refreshTime: $('#refresh-time'), refresh: $('#manual-refresh'),
       banner: $('#status-banner'), bannerText: $('#status-banner-text'), retry: $('#retry-button'),
       list: $('#account-list'), empty: $('#empty-state'), resultCount: $('#result-count'),
+      rankSelect: $('#rank-type'),
       filterForm: $('#filter-form'), desktopFilters: $('#desktop-filters'), filterDialog: $('#filter-dialog'),
       mobileFilterContent: $('#mobile-filter-content'), openFilters: $('#open-filters'), activeFilterCount: $('#active-filter-count'),
       detailDialog: $('#detail-dialog'), dialogTitle: $('#dialog-title'), dialogContent: $('#dialog-content')
@@ -111,8 +118,12 @@
 
   function endpoint() {
     if (new URLSearchParams(location.search).get('demo') === '1') return './status.sample.json';
-    return new URL(CONFIG.STATUS_PATH || '/api/status', `${CONFIG.API_BASE_URL || location.origin}/`).href;
+    const url = new URL(CONFIG.STATUS_PATH || '/api/status', `${CONFIG.API_BASE_URL || location.origin}/`);
+    url.searchParams.set('rank_type', state.rankType);
+    return url.href;
   }
+
+  const cacheKey = () => `${STORAGE.cache}:${state.rankType}`;
 
   async function loadData({ manual = false } = {}) {
     if (state.refreshing) state.controller?.abort();
@@ -122,14 +133,21 @@
     setConnection('loading', manual ? '正在刷新' : '正在同步');
     const timeout = setTimeout(() => state.controller.abort(), CONFIG.REQUEST_TIMEOUT_MS || 12000);
     const started = performance.now();
+    let warming = false;
     try {
       const response = await fetch(endpoint(), { cache: 'no-store', credentials: 'omit', signal: state.controller.signal, headers: { Accept: 'application/json' } });
+      if (response.status === 202) {
+        warming = true;
+        setConnection('loading', '正在准备分类');
+        showBanner(`${RANK_LABELS[state.rankType]}首次载入中，服务器正在整理对应交易员列表。`, false);
+        return;
+      }
       if (!response.ok) throw new Error(`接口返回 HTTP ${response.status}`);
       const payload = validatePayload(await response.json());
       state.latency = Math.round(performance.now() - started);
       applyPayload(payload);
       state.lastSuccessAt = Date.now();
-      localStorage.setItem(STORAGE.cache, JSON.stringify({ savedAt: state.lastSuccessAt, payload }));
+      localStorage.setItem(cacheKey(), JSON.stringify({ savedAt: state.lastSuccessAt, payload }));
       hideBanner();
       setConnection('online', `${state.latency}ms`);
     } catch (error) {
@@ -137,9 +155,15 @@
     } finally {
       clearTimeout(timeout);
       state.refreshing = false;
-      state.loading = false;
       el.refresh.disabled = false;
-      scheduleNext();
+      if (warming) {
+        state.loading = true;
+        clearTimeout(state.timer);
+        state.timer = setTimeout(() => loadData(), 2000);
+      } else {
+        state.loading = false;
+        scheduleNext();
+      }
     }
   }
 
@@ -157,7 +181,7 @@
   function handleFetchFailure(error) {
     const isOffline = !navigator.onLine;
     if (!state.data) {
-      const cached = readJSON(STORAGE.cache, null);
+      const cached = readJSON(cacheKey(), null);
       if (cached?.payload) {
         state.lastSuccessAt = cached.savedAt || 0;
         applyPayload(cached.payload, { cached: true });
@@ -295,7 +319,7 @@
     items.forEach(item => el.list.append(createCard(item)));
     el.list.setAttribute('aria-busy', 'false');
     el.empty.hidden = items.length > 0;
-    el.resultCount.textContent = `显示 ${items.length} / ${state.enriched.length} 个账户 · 风险评分为前端实时计算`;
+    el.resultCount.textContent = `${RANK_LABELS[state.rankType]} · 显示 ${items.length} / ${state.enriched.length} 个账户 · 风险评分为前端实时计算`;
     updateFilterCount();
   }
 
@@ -359,6 +383,20 @@
 
   function wireEvents() {
     $('#theme-toggle').addEventListener('click', toggleTheme);
+    el.rankSelect.addEventListener('change', () => {
+      if (!(el.rankSelect.value in RANK_LABELS) || el.rankSelect.value === state.rankType) return;
+      state.rankType = el.rankSelect.value;
+      localStorage.setItem(STORAGE.rank, state.rankType);
+      state.data = null;
+      state.enriched = [];
+      state.previous = new Map();
+      state.lastSuccessAt = 0;
+      el.empty.hidden = true;
+      el.list.setAttribute('aria-busy', 'true');
+      el.resultCount.textContent = `正在载入${RANK_LABELS[state.rankType]}…`;
+      renderSkeletons();
+      loadData({ manual: true });
+    });
     el.refresh.addEventListener('click', () => loadData({ manual: true }));
     el.retry.addEventListener('click', () => loadData({ manual: true }));
     $('#empty-clear').addEventListener('click', clearFilters);
@@ -438,6 +476,9 @@
     el.html.dataset.theme = theme;
     state.favorites = new Set(readJSON(STORAGE.favorites, []));
     state.filters = { ...state.filters, ...readJSON(STORAGE.filters, {}) };
+    const savedRank = localStorage.getItem(STORAGE.rank);
+    state.rankType = savedRank && savedRank in RANK_LABELS ? savedRank : 'composite';
+    el.rankSelect.value = state.rankType;
     syncFilterControls();
   }
 

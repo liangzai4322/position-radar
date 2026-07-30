@@ -157,6 +157,9 @@ h1 span { color: var(--cyan); }
 .workspace-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
 .workspace-head h2 { margin: 0; font: 700 clamp(29px, 3.6vw, 44px)/1 var(--font-display); letter-spacing: -.025em; }
 .result-count { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+.workspace-actions { display: flex; align-items: end; gap: 10px; }
+.rank-selector { display: grid; gap: 6px; color: var(--muted); font-size: 10px; font-weight: 700; }
+.rank-selector select { width: 190px; min-height: 44px; padding: 0 30px 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); font-size: 13px; font-weight: 700; }
 .filter-mobile-button { display: none; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); font-weight: 700; }
 .filter-mobile-button span { display: inline-grid; width: 21px; height: 21px; margin-left: 6px; place-items: center; border-radius: 50%; background: var(--blue); color: #fff; font: 700 11px var(--font-data); }
 .workspace-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 24px; }
@@ -289,6 +292,10 @@ footer { display: flex; justify-content: space-between; gap: 20px; max-width: 14
   .balance-labels span { min-width: 0; flex: 1 1 50%; font-size: 10px; line-height: 1.35; }
   .balance-labels span:last-child { text-align: right; }
   .workspace { margin-top: 40px; }
+  .workspace-head { align-items: end; flex-wrap: wrap; }
+  .workspace-actions { width: 100%; align-items: end; }
+  .rank-selector { flex: 1 1 auto; }
+  .rank-selector select { width: 100%; }
   .filter-panel { display: none; }
   .filter-mobile-button { display: block; }
   .workspace-layout { display: block; }
