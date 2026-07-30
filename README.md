@@ -2,6 +2,10 @@
 
 零框架、零 CDN、可直接部署到 GitHub Pages 的只读交易监控前端。实时 API 默认指向 `https://liangzai666.com/api/status`。
 
+- 正式站点：https://liangzai4322.github.io/position-radar/
+- 唯一编辑源：`D:\page\2026\trader-monitor-site\frontend`
+- 发布镜像：`D:\page\2026\position-radar-pages`
+
 ## 本地预览
 
 ```powershell
@@ -30,12 +34,32 @@ window.APP_CONFIG = Object.freeze({
 
 如果变更 API 域名，需要同步修改 `index.html` 中 CSP 的 `connect-src`。该目录所有资源均使用 `./` 相对路径，可部署到 GitHub Pages 的仓库子路径。
 
-### 后端上线前置条件
+### 后端接口契约
 
-1. `https://liangzai666.com/api/status` 返回与 `status.sample.json` 相同结构。
-2. API 正确响应 `OPTIONS`，并将最终 GitHub Pages Origin 加入 CORS 白名单。
-3. `GET /api/status` 推荐使用 `Cache-Control: no-store` 或 ETag；静态文件使用长缓存与内容哈希策略。
-4. 公共前端只读取状态接口；设置、排行切换等写接口留在同域管理端。
+公开请求格式：
+
+```text
+GET https://liangzai666.com/api/status?rank_type=<type>
+```
+
+支持的 `type`：
+
+| 值 | 界面分类 |
+| --- | --- |
+| `composite` | 综合排序 |
+| `yieldRatio` | 收益率 |
+| `pnl` | 收益额 |
+| `winRatio` | 胜率 |
+| `aum` | 带单规模 |
+| `traderFollowerLimit` | 跟单人数 |
+| `followTotalPnl` | 跟单用户收益 |
+| `all` | 所有交易员 |
+
+- 已缓存分类返回 `200` 和与 `status.sample.json` 同结构的数据。
+- 首次准备返回 `202`、`{"status":"warming","rank_type":"<type>"}`；前端每 2 秒重试。
+- `all` 人数动态变化，不能按固定 44 人实现或测试；应验证其人数大于普通 9 人榜单。
+- API 对 GitHub Pages Origin 开放 `GET`/`OPTIONS`，响应使用 `Cache-Control: no-store`。
+- 公共前端只读取状态接口；设置、排行切换等写接口留在服务器内部。
 
 ## 已实现能力
 
