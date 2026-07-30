@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="实时观察交易账户仓位、收益与风险信号。">
+  <meta name="theme-color" content="#07152d">
+  <meta name="color-scheme" content="dark light">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://liangzai666.com; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
+  <title>交易员仓位雷达</title>
+  <link rel="icon" href="./favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./config.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#account-list">跳到交易员列表</a>
+
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="交易员仓位雷达首页">
+      <img src="./assets/icons/icon-64.png" alt="" width="44" height="44">
+      <span><strong>仓位雷达</strong><small>POSITION RADAR</small></span>
+    </a>
+    <div class="header-actions">
+      <span class="connection" id="connection-status" role="status"><i></i><span>正在连接</span></span>
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="切换浅色模式" title="切换主题">◐</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="command-deck" aria-labelledby="page-title">
+      <div class="deck-heading">
+        <div>
+          <p class="eyebrow">LIVE POSITION INTELLIGENCE</p>
+          <h1 id="page-title">看清仓位，<span>先于风险。</span></h1>
+          <p class="deck-copy">把交易员的方向、杠杆与爆仓距离，压缩成一眼可读的风险航图。</p>
+        </div>
+        <div class="refresh-block">
+          <span>数据时间</span>
+          <time id="refresh-time">等待首次数据</time>
+          <button class="text-button" id="manual-refresh" type="button">立即刷新 <span aria-hidden="true">↻</span></button>
+        </div>
+      </div>
+
+      <div class="signal-grid" id="signal-grid" aria-label="市场总览">
+        <article class="signal-card signal-primary">
+          <span class="signal-label">风险账户</span>
+          <strong id="metric-risk">—</strong>
+          <small id="metric-risk-note">正在计算风险</small>
+          <div class="radar-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+        </article>
+        <article class="signal-card">
+          <span class="signal-label">监控账户</span>
+          <strong id="metric-accounts">—</strong>
+          <small id="metric-active">— 个持仓中</small>
+        </article>
+        <article class="signal-card">
+          <span class="signal-label">跟单规模</span>
+          <strong id="metric-aum">—</strong>
+          <small>交易员 AUM 合计</small>
+        </article>
+        <article class="signal-card">
+          <span class="signal-label">持仓规模</span>
+          <strong id="metric-notional">—</strong>
+          <small id="metric-positions">— 个公开仓位</small>
+        </article>
+      </div>
+
+      <div class="market-strip">
+        <section class="liq-section" aria-labelledby="liq-title">
+          <div class="section-label" id="liq-title">最近爆仓标尺</div>
+          <div class="liq-row" id="liq-row" aria-live="polite">
+            <span><b>BTC</b><em>—</em></span><span><b>ETH</b><em>—</em></span>
+            <span><b>SOL</b><em>—</em></span><span><b>OKX</b><em>—</em></span>
+          </div>
+        </section>
+        <section class="balance-section" aria-labelledby="balance-title">
+          <div class="balance-head"><span class="section-label" id="balance-title">多空力量</span><span id="balance-total">—</span></div>
+          <div class="balance-labels"><span id="long-label">多头 —</span><span id="short-label">空头 —</span></div>
+          <div class="balance-track" role="img" aria-label="多空持仓占比"><i id="long-bar"></i><i id="short-bar"></i><b id="balance-needle"></b></div>
+        </section>
+      </div>
+    </section>
+
+    <div id="status-banner" class="status-banner" role="alert" hidden>
+      <span id="status-banner-text"></span>
+      <button id="retry-button" type="button">重试</button>
+    </div>
+
+    <section class="workspace" aria-labelledby="list-title">
+      <div class="workspace-head">
+        <div><p class="eyebrow">TRADER SIGNALS</p><h2 id="list-title">交易员信号</h2><p id="result-count" class="result-count">正在载入账户…</p></div>
+        <button class="filter-mobile-button" id="open-filters" type="button" aria-haspopup="dialog">筛选 <span id="active-filter-count">0</span></button>
+      </div>
+
+      <div class="workspace-layout">
+        <aside class="filter-panel" id="desktop-filters" aria-label="筛选交易员">
+          <form id="filter-form" autocomplete="off">
+            <label class="search-field"><span>搜索</span><input id="search-input" type="search" placeholder="账户名或币种" spellcheck="false"><i aria-hidden="true">⌕</i></label>
+            <div class="filter-group">
+              <label for="symbol-filter">币种</label>
+              <select id="symbol-filter"><option value="all">全部币种</option></select>
+            </div>
+            <div class="filter-group">
+              <span>方向</span>
+              <div class="segmented" role="group" aria-label="持仓方向">
+                <button type="button" data-filter="direction" data-value="all" class="is-active">全部</button>
+                <button type="button" data-filter="direction" data-value="多">多</button>
+                <button type="button" data-filter="direction" data-value="空">空</button>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label for="risk-filter">风险等级</label>
+              <select id="risk-filter">
+                <option value="all">全部风险</option><option value="critical">紧急</option>
+                <option value="elevated">偏高</option><option value="guarded">关注</option><option value="stable">平稳</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="position-filter">仓位状态</label>
+              <select id="position-filter"><option value="all">全部账户</option><option value="active">持仓中</option><option value="empty">空仓</option></select>
+            </div>
+            <div class="filter-group">
+              <label for="sort-filter">排序</label>
+              <select id="sort-filter">
+                <option value="risk">风险优先</option><option value="pnl-desc">收益率从高到低</option>
+                <option value="pnl-asc">收益率从低到高</option><option value="notional">持仓规模</option>
+                <option value="aum">跟单规模</option><option value="name">账户名称</option>
+              </select>
+            </div>
+            <label class="check-row"><input id="favorites-only" type="checkbox"><span>只看收藏</span></label>
+            <button class="clear-button" id="clear-filters" type="button">清除筛选</button>
+          </form>
+        </aside>
+
+        <div class="account-region">
+          <div id="account-list" class="account-list" aria-live="polite" aria-busy="true"></div>
+          <div id="empty-state" class="empty-state" hidden>
+            <span aria-hidden="true">◎</span><h3>没有匹配的交易员</h3><p>调整搜索词或清除筛选条件。</p><button id="empty-clear" type="button">清除筛选</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer><span>仓位雷达 · 只读观察台</span><span>风险评分仅基于公开仓位数据</span></footer>
+
+  <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-shell">
+      <header><div><p class="eyebrow">POSITION DETAIL</p><h2 id="dialog-title">账户详情</h2></div><button class="dialog-close" data-close-dialog type="button" aria-label="关闭详情">×</button></header>
+      <div id="dialog-content"></div>
+    </div>
+  </dialog>
+
+  <dialog id="filter-dialog" class="filter-dialog" aria-labelledby="filter-dialog-title">
+    <form method="dialog" class="drawer-shell">
+      <header><h2 id="filter-dialog-title">筛选交易员</h2><button class="dialog-close" value="cancel" aria-label="关闭筛选">×</button></header>
+      <div id="mobile-filter-content"></div>
+      <button class="drawer-apply" value="default">查看结果</button>
+    </form>
+  </dialog>
+
+  <template id="skeleton-template">
+    <article class="account-card skeleton-card" aria-hidden="true"><div class="skeleton sk-title"></div><div class="skeleton sk-line"></div><div class="skeleton sk-grid"></div><div class="skeleton sk-line short"></div></article>
+  </template>
+
+  <noscript><div class="noscript">请启用 JavaScript 以载入交易员实时数据。</div></noscript>
+</body>
+</html>
